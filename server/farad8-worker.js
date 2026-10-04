@@ -73,7 +73,7 @@ export default {
     try {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", ...(env.ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": env.ANTHROPIC_WORKSPACE_ID } : {}), "content-type": "application/json" },
         body: JSON.stringify({ model: MODEL, max_tokens: 350, system: SYSTEM, messages: msgs }),
       });
       if (!r.ok) return json({ error: "Modelo no disponible", status: r.status }, 502, h);
