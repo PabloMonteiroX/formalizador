@@ -12,7 +12,26 @@
   box-shadow: 4px 4px 0 var(--gb0); display: grid; place-items: center; cursor: pointer; touch-action: manipulation;
 }
 body.editing .f8-fab { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
-body.kbd .f8-fab, body.kbd .f8-bubble { display: none; }
+body.kbd .f8-fab, body.kbd .f8-bubble, body.kbd .f8-pet { display: none; }
+
+/* Ohm, el gato: sentado a la izquierda de FARAD-8 */
+.f8-pet {
+  position: fixed; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 64px); bottom: calc(94px + env(safe-area-inset-bottom, 0px)); z-index: 25;
+  width: 46px; height: 46px; padding: 0; border: 0; background: none; display: grid; place-items: end center; cursor: pointer; touch-action: manipulation;
+}
+body.editing .f8-pet { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+.f8-pet .f8-pet-sprite { width: 42px; height: 38.5px; filter: drop-shadow(1px 1px 0 rgba(15, 56, 15, .35)); }
+.f8-pet-sprite { image-rendering: pixelated; image-rendering: crisp-edges; }
+.f8-pet-sprite.mini { width: 30px; height: 27.5px; align-self: flex-end; margin-left: -6px; }
+.f8-pet-hop { animation: f8-pet-hop .5s steps(3) 1; }
+@keyframes f8-pet-hop { 50% { transform: translateY(-10px); } }
+.f8-pet::after {
+  content: "z"; position: absolute; top: -4px; right: 0; font: 800 13px/1 var(--f8-mono); color: var(--gb2);
+  opacity: 0; pointer-events: none;
+}
+.f8-pet-sleep .f8-pet::after { animation: f8-zz 2.4s steps(4) infinite; }
+@keyframes f8-zz { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(6px, -10px); } }
+@media (prefers-reduced-motion: reduce) { .f8-pet-hop, .f8-pet-sleep .f8-pet::after { animation: none; } }
 .f8-fab:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--gb0); }
 .f8-sprite { width: 40px; height: 40px; image-rendering: pixelated; image-rendering: crisp-edges; }
 .f8-sprite.big { width: 64px; height: 64px; }
@@ -94,7 +113,7 @@ body.editing .f8-bubble { bottom: calc(92px + env(safe-area-inset-bottom, 0px));
 
 .f8-settings h2 { margin: 0; font: 800 18px var(--f8-mono); letter-spacing: 0.1em; }
 .f8-row { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 15px; }
-.f8-row input { width: 22px; height: 22px; accent-color: var(--btn); }
+.f8-row input { flex: none; width: 22px; height: 22px; accent-color: var(--btn); }
 .f8-field { font-weight: 700; font-size: 14px; }
 .f8-small { font-size: 13px; margin: 0; color: #3a3a40; }
 .f8-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -109,3 +128,4 @@ body.editing .f8-bubble { bottom: calc(92px + env(safe-area-inset-bottom, 0px));
 }
 @keyframes f8-hop { 50% { transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .f8 *, .f8 { animation: none !important; } }
+@media (prefers-color-scheme: dark) { .f8-pet .f8-pet-sprite { filter: drop-shadow(0 0 1px rgba(155, 188, 15, .7)); } }

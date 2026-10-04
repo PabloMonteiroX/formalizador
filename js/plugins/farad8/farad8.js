@@ -2,10 +2,10 @@
 // Sin conexión usa el cerebro local (brain.js). Con un endpoint configurado y señal,
 // consulta un modelo online; si falla, vuelve solo al modo cartucho y reintenta más tarde.
 import * as B from "./brain.js";
-import { drawSprite } from "./sprite.js";
+import { drawSprite, drawPet } from "./sprite.js";
 
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
-const DEFAULTS = { proactive: true, sound: false, fx: true, endpoint: "", greeted: false, progress: {} };
+const DEFAULTS = { proactive: true, sound: false, fx: true, pet: true, tutor: false, endpoint: "", greeted: false, progress: {} };
 
 export default function setup(host) {
   const store = host.storage("farad8");
@@ -33,6 +33,9 @@ export default function setup(host) {
       <canvas width="16" height="16" class="f8-sprite" aria-hidden="true"></canvas>
       <span class="f8-led" aria-hidden="true"></span>
     </button>
+    <button class="f8-pet" type="button" aria-label="Ohm, el gato de FARAD-8">
+      <canvas width="12" height="11" class="f8-pet-sprite" aria-hidden="true"></canvas>
+    </button>
     <div class="f8-bubble" role="status" aria-live="polite" hidden>
       <button class="f8-bubble-text" type="button"></button>
       <button class="f8-bubble-x" type="button" aria-label="Cerrar aviso">×</button>
@@ -42,6 +45,7 @@ export default function setup(host) {
         <div class="f8-screen">
           <div class="f8-head">
             <canvas width="16" height="16" class="f8-sprite big" aria-hidden="true"></canvas>
+            <canvas width="12" height="11" class="f8-pet-sprite mini" aria-hidden="true"></canvas>
             <div class="f8-id">
               <strong>FARAD-8</strong>
               <span class="f8-mode"></span>
@@ -74,6 +78,8 @@ export default function setup(host) {
         <label class="f8-row"><input type="checkbox" data-k="proactive"> Avisos proactivos mientras escribes</label>
         <label class="f8-row"><input type="checkbox" data-k="fx"> Efectos retro (parpadeos y píxeles sueltos)</label>
         <label class="f8-row"><input type="checkbox" data-k="sound"> Sonido 8 bits</label>
+        <label class="f8-row"><input type="checkbox" data-k="pet"> Ohm, el gato de FARAD-8</label>
+        <label class="f8-row"><input type="checkbox" data-k="tutor"> Modo tutor: solo pistas, sin soluciones (para practicar)</label>
         <label class="f8-field" for="f8ep">Cerebro online (opcional): URL de tu endpoint</label>
         <input id="f8ep" type="url" inputmode="url" placeholder="https://farad8.tu-usuario.workers.dev" autocapitalize="off" autocorrect="off" spellcheck="false">
         <p class="f8-small">Con un endpoint, la frase, los átomos y la fórmula de la tarjeta abierta se envían a ese servidor. Sin endpoint o sin señal, FARAD-8 funciona en modo cartucho, todo en el dispositivo.</p>
@@ -98,7 +104,7 @@ export default function setup(host) {
   function refreshMode() {
     const on = online();
     root.classList.toggle("is-online", on);
-    $(".f8-mode").textContent = on ? "⚡ ONLINE" : cfg.endpoint ? "▣ CARTUCHO (sin señal)" : "▣ CARTUCHO";
+    $(".f8-mode").textContent = (on ? "⚡ ONLINE" : cfg.endpoint ? "▣ CARTUCHO (sin señal)" : "▣ CARTUCHO") + (cfg.tutor ? " · TUTOR" : on ? " · AYUDANTE" : "");
     if (!st.typing) paint(on || !cfg.endpoint ? "idle" : "offline");
   }
   function refreshMeter() {
@@ -131,6 +137,35 @@ export default function setup(host) {
       o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + ms / 1000);
     } catch { /* sin audio */ }
   }
+
+  /* ---------- Ohm, el gato: mueve la cola, parpadea, se duerme y se alegra contigo ---------- */
+  const pet = (() => {
+    const btn = $(".f8-pet"), canvases = [...root.querySelectorAll(".f8-pet-sprite")];
+    let state = "idle", frame = 0, lastActive = Date.now(), moodTimer = 0;
+    const draw = () => canvases.forEach((c) => drawPet(c, state, frame));
+    const set = (s, ms) => {
+      state = s; root.classList.toggle("f8-pet-sleep", s === "sleep"); draw();
+      clearTimeout(moodTimer); if (ms) moodTimer = setTimeout(() => set("idle"), ms);
+    };
+    const hop = () => { btn.classList.remove("f8-pet-hop"); void btn.offsetWidth; btn.classList.add("f8-pet-hop"); };
+    const show = () => { btn.hidden = !cfg.pet; canvases[1].hidden = !cfg.pet; };
+    setInterval(() => {
+      if (document.visibilityState !== "visible" || REDUCED.matches) return;
+      if (state !== "sleep" && Date.now() - lastActive > 60000) set("sleep");
+      if (state === "idle") { frame ^= 1; if (Math.random() < 0.12) { state = "blink"; draw(); setTimeout(() => state === "blink" && set("idle"), 160); return; } draw(); }
+    }, 700);
+    btn.addEventListener("click", () => {
+      lastActive = Date.now(); set("happy", 1400); hop();
+      blip(1046, 40); setTimeout(() => blip(1318, 60), 70);
+      bubbleSay(B.pick(B.LINES.pet), { force: true });
+    });
+    show(); draw();
+    return {
+      show,
+      wake() { lastActive = Date.now(); if (state === "sleep") set("idle"); },
+      cheer() { lastActive = Date.now(); set("happy", 2200); hop(); },
+    };
+  })();
 
   /* ---------- registro de diálogo con efecto máquina de escribir ---------- */
   const queue = [];
@@ -180,7 +215,9 @@ export default function setup(host) {
     if (!st.card) return say("Abre una tarjeta y te acompaño. Desde la lista solo veo títulos.");
     const lvl = (st.hintLevel[st.card.id] = Math.min(2, (st.hintLevel[st.card.id] || 0) + 1));
     say(`PISTA ${lvl}/2 ▸ ` + B.hint(st.card, st.analysis, lvl));
-    if (lvl === 2) say("Más allá no voy: la formalización la escribes tú. Así se aprende (y así se aprueba la PEC).", "aside");
+    if (lvl === 2) say(cfg.tutor ? "Más allá no voy: estás en modo tutor y la formalización la escribes tú."
+      : online() ? "¿Quieres la solución completa? Pídemela abajo y te la doy verificada con el motor."
+      : "La solución completa necesita el cerebro online; en modo cartucho llego hasta aquí.", "aside");
   }
   function doRead() {
     if (!ctxReady() || !st.analysis.res) return say("Todavía no hay fórmula que leer. Escribe una y pulsa LEER.");
@@ -235,7 +272,7 @@ export default function setup(host) {
       if (z.i < z.qs.length) return renderQuestion();
       quizBox.hidden = true; quizBox.innerHTML = "";
       const p = prog(st.card.id); p.n += z.qs.length; p.ok = Math.max(p.ok, z.ok);
-      if (z.ok === z.qs.length) { p.done = true; p.formula = st.card.formula; say(B.pick(B.LINES.understood)); setFace("happy", 1500); }
+      if (z.ok === z.qs.length) { p.done = true; p.formula = st.card.formula; say(B.pick(B.LINES.understood)); setFace("happy", 1500); pet.cheer(); }
       else say(`${z.ok}/${z.qs.length}. Repasa la explicación de las que fallaste y repite el QUIZ: cambia los valores cada vez.`);
       st.quiz = null; save(); refreshMeter();
     }, ok ? 900 : 1800);
@@ -249,7 +286,7 @@ export default function setup(host) {
       paint("think"); say(B.pick(B.LINES.think), "aside");
       try {
         const { text, actions } = await askRemote(cfg.endpoint, {
-          question, history: st.history.slice(0, -1),
+          question, history: st.history.slice(0, -1), mode: cfg.tutor ? "tutor" : "ayudante",
           context: st.card ? contextFor(st.card, st.analysis) : null,
         });
         st.history.push({ role: "assistant", content: text });
@@ -312,7 +349,7 @@ export default function setup(host) {
   });
   host.on("close", () => { st.card = null; st.analysis = null; hideBubble(); refreshMeter(); quizBox.hidden = true; st.quiz = null; });
   host.on("analyze", ({ card, analysis }) => {
-    st.card = card; st.analysis = analysis; st.lastAnalyzeAt = Date.now();
+    st.card = card; st.analysis = analysis; st.lastAnalyzeAt = Date.now(); pet.wake();
     const p = prog(card.id);
     if (p.done && p.formula !== card.formula) { p.done = false; p.ok = 0; save(); } // si cambias la fórmula, hay que volver a comprobarla
     refreshMeter();
@@ -390,7 +427,7 @@ export default function setup(host) {
     const out = settings.querySelector(".f8-test");
     if (a === "closeSettings") settings.close();
     if (a === "saveSettings") {
-      const bad = readSettings(); save(); st.degradedUntil = 0; refreshMode();
+      const bad = readSettings(); save(); st.degradedUntil = 0; refreshMode(); pet.show();
       if (bad) { out.textContent = "La URL tiene que empezar por https://"; return; }
       settings.close(); host.toast("Ajustes de FARAD-8 guardados.");
     }

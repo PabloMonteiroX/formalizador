@@ -30,6 +30,13 @@ export const LINES = {
   back: ["¡Señal recuperada! Bobina recargada, vuelvo a tener cerebro online.", "Reconectado. Aterrizaje vertical completado."],
   degraded: ["El cerebro online no responde. Paso a modo cartucho y lo vuelvo a intentar más tarde."],
   glitch: ["▓▒░ ¿me has visto parpadear? Es personalidad, no un fallo. ░▒▓", "BRK ; perdón, un pixel suelto.", "01000110 01000001 01010010… digo, ¡hola!"],
+  pet: [
+    "Ohm: prrr… (se frota contra la bobina y suelta una chispita)",
+    "Ohm: ¡miau! Resistencia: 0 Ω a los mimos.",
+    "Ohm ronronea en binario: 01110000 01110010 01110010.",
+    "Ohm se estira sobre la tabla de verdad. Fila favorita: la de todo V.",
+    "Ohm: miau. (Traducción de FARAD-8: «¿y si pruebas el QUIZ?»)",
+  ],
   idle: [
     "¿Te atascas? Pulsa PISTA. La primera es suave.",
     "Truco: pulsa LEER y compara mi lectura con tu frase, palabra por palabra.",

@@ -1,7 +1,7 @@
 // Tests del cerebro online de FARAD-8: motor como herramientas, acciones y bucle (API simulada).
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { runTool, checkAction, findLeaks, TOOLS, SYSTEM } from "../server/farad8-worker.js";
+import worker, { runTool, checkAction, findLeaks, TOOLS, systemFor } from "../server/farad8-worker.js";
 
 const ORIGIN = "http://localhost:8765";
 const post = (body) => new Request("https://farad8.test/", { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -41,9 +41,11 @@ test("acciones: solo las permitidas y con pestañas reales", () => {
   assert.deepEqual(checkAction({ accion: "iniciar_quiz" }, ctx).action, { type: "iniciar_quiz" });
 });
 
-test("prompt y herramientas coherentes", () => {
-  for (const t of TOOLS) assert.ok(SYSTEM.includes(t.name), t.name);
-  assert.match(SYSTEM, /NUNCA escribas la formalización completa/);
+test("prompt: dos modos, mismas herramientas", () => {
+  for (const mode of ["ayudante", "tutor"]) for (const t of TOOLS) assert.ok(systemFor(mode).includes(t.name), `${mode}: ${t.name}`);
+  assert.match(systemFor("ayudante"), /MODO AYUDANTE[\s\S]*dásela completa y correcta/);
+  assert.match(systemFor("tutor"), /MODO TUTOR[\s\S]*No escribas la formalización completa/);
+  assert.equal(systemFor("loquesea"), systemFor("ayudante"));
 });
 
 test("bucle: usa el motor, devuelve acciones y el texto final", async (t) => {
@@ -131,7 +133,7 @@ test("guardián: pide reescribir y, si insiste, tacha la fórmula", async (t) =>
     { stop_reason: "end_turn", content: [{ type: "text", text: "Vale: ¬P ∧ ¬Q. ¿Lo ves?" }] },
   ];
   t.mock.method(globalThis, "fetch", async (url, init) => { sent.push(JSON.parse(init.body)); return new Response(JSON.stringify(replies.shift()), { status: 200 }); });
-  const j = await (await worker.fetch(post({ question: "dame la solución", context: { atomos: "P: estudio\nQ: trabajo", formula: "¬(P ∧ Q)", pestanas: [] } }), { ANTHROPIC_API_KEY: "x" })).json();
+  const j = await (await worker.fetch(post({ question: "dame la solución", mode: "tutor", context: { atomos: "P: estudio\nQ: trabajo", formula: "¬(P ∧ Q)", pestanas: [] } }), { ANTHROPIC_API_KEY: "x" })).json();
   assert.equal(sent.length, 2);
   assert.match(sent[1].messages.at(-1).content, /CONTROL DE INTEGRIDAD/);
   assert.ok(!j.text.includes("¬P ∧ ¬Q"));
@@ -152,4 +154,16 @@ test("bucle: si actúa sin decir nada, se le pide el texto; sin markdown", async
   assert.equal(sent[2].messages.at(-1).content.at(-1).type, "text");
   assert.equal(j.text, "Es el error de afirmar el consecuente (clásico). ¿Lo ves?");
   assert.deepEqual(j.actions, [{ type: "iniciar_quiz" }]);
+});
+
+test("modo ayudante (por defecto): da la solución y el guardián no interviene", async (t) => {
+  const sent = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    sent.push(JSON.parse(init.body));
+    return new Response(JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: "Átomos: P estudio, Q trabajo.\n¬P ∧ ¬Q\n«Ni» niega las dos cosas." }] }), { status: 200 });
+  });
+  const j = await (await worker.fetch(post({ question: "dame la solución", context: { atomos: "P: estudio\nQ: trabajo", formula: "¬(P ∧ Q)", pestanas: [] } }), { ANTHROPIC_API_KEY: "x" })).json();
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].system, /MODO AYUDANTE/);
+  assert.match(j.text, /¬P ∧ ¬Q/);
 });

@@ -26,7 +26,9 @@ Convenciones del módulo: `¬` > `∧` = `∨` > `→`, asociatividad por la izq
 FARAD-8 es un robot de 8 bits con estética Game Boy que vive en la esquina de la app. De vez en cuando parpadea, pierde píxeles o suelta un `MOV AX, LOGICA`: no es un fallo, es su personalidad.
 
 - **Proactivo:** mientras escribes, compara tu frase con tu fórmula y avisa en una burbuja de los errores típicos: «ni» mal negado, o exclusiva que falta o que sobra, «…, cuando X» al final, «…, y …», `→` sin ninguna condición en la frase, dirección de la condición necesaria, tautologías sospechosas y errores de sintaxis explicados.
-- **PISTA:** escalera de dos niveles, primero la zona y después el concepto. **Nunca escribe la formalización por ti**, por integridad académica.
+- **Dos modos** (AJUSTES): **ayudante**, por defecto, resuelve lo que le pidas (formalizaciones, tablas, demostraciones) completo y verificado con el motor lógico; **tutor** no da soluciones y guía con pistas, para practicar antes de un examen.
+- **PISTA:** escalera de dos niveles, primero la zona y después el concepto.
+- **Ohm**, el gato de píxeles de FARAD-8: mueve la cola, se duerme si no haces nada y se alegra cuando superas un QUIZ. Se desactiva en AJUSTES.
 - **LEER:** traduce tu fórmula al castellano usando tus átomos, para que la compares con la frase.
 - **QUIZ:** tres preguntas generadas a partir de tu fórmula (conectiva principal, valor en una fila, qué dice). Con 3 de 3 la tarjeta queda marcada ★ COMPRENDIDO; si cambias la fórmula, hay que volver a demostrarlo.
 - **¿POR QUÉ?:** explica el error, el contraejemplo con tus átomos o la conectiva principal.
@@ -40,7 +42,7 @@ FARAD-8 es un robot de 8 bits con estética Game Boy que vive en la esquina de l
 | El servidor falla o tarda más de 30 s | Se escapa a modo cartucho, responde en local y lo reintenta en 60 s |
 | El iPhone pierde la red | Avisa («jaula de Faraday») y sigue en local; al volver la red, avisa de que ha vuelto |
 
-**Cerebro online (opcional).** La API key **nunca** va en la app: vive como secreto en un Cloudflare Worker (`server/farad8-worker.js`). El worker solo acepta peticiones de `pablomonteirox.github.io`, limita las peticiones, recorta el texto de entrada y lleva la regla de integridad en su prompt de sistema.
+**Cerebro online (opcional).** La API key **nunca** va en la app: vive como secreto en un Cloudflare Worker (`server/farad8-worker.js`). El worker solo acepta peticiones de `pablomonteirox.github.io`, limita las peticiones, recorta el texto de entrada y en modo tutor vigila que no se escapen soluciones.
 
 En modo online FARAD-8 tiene herramientas:
 

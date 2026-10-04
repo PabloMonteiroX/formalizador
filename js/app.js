@@ -3,7 +3,7 @@ import * as L from "./logic.js";
 import * as S from "./store.js";
 import { createHost, PLUGINS } from "./plugins/registry.js";
 
-export const APP_VERSION = "1.3.0";
+export const APP_VERSION = "1.4.0";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);

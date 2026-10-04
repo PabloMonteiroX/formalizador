@@ -58,3 +58,44 @@ export function drawSprite(canvas, face = "idle", { pixelate = false, shift = 0 
     ctx.clearRect(0, 0, 16, 16); ctx.drawImage(tmp, 0, 0, 16, 16);
   }
 }
+
+/* ---------- Ohm, el gato de FARAD-8 (12×11) ---------- */
+// e = ojo, n = nariz, t = cola arriba (fotograma 0), u = cola abajo (fotograma 1), b = barriga.
+const PET = [
+  "...1.....1..",
+  "...11...11..",
+  "...1222221..",
+  "...12e2e21..",
+  "t..122n221..",
+  "t...12221...",
+  "t..1222221..",
+  ".t.12bbb21..",
+  "..u12bbb21..",
+  "..u1222221..",
+  "...11.1.11..",
+];
+const PET_STATES = {
+  idle:  { eye: "4", nose: "5", belly: "3" },
+  blink: { eye: "1", nose: "5", belly: "3" },
+  sleep: { eye: "1", nose: "2", belly: "3" },
+  happy: { eye: "5", nose: "5", belly: "4" },
+};
+export const PET_SIZE = { w: 12, h: 11 };
+
+export function drawPet(canvas, state = "idle", frame = 0) {
+  const s = PET_STATES[state] || PET_STATES.idle;
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, PET_SIZE.w, PET_SIZE.h);
+  PET.forEach((row, y) => [...row].forEach((ch, x) => {
+    let c = ch;
+    if (ch === "e") c = s.eye;
+    else if (ch === "n") c = s.nose;
+    else if (ch === "b") c = s.belly;
+    else if (ch === "t") c = frame === 0 ? "1" : ".";
+    else if (ch === "u") c = frame === 1 ? "1" : ".";
+    if (c === "." || !PALETTE[c]) return;
+    ctx.fillStyle = PALETTE[c];
+    ctx.fillRect(x, y, 1, 1);
+  }));
+}
