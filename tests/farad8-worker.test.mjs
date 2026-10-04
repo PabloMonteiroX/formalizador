@@ -50,6 +50,7 @@ test("bucle: usa el motor, devuelve acciones y el texto final", async (t) => {
   const sent = [];
   const replies = [
     { stop_reason: "tool_use", content: [
+      { type: "thinking", thinking: "", signature: "sig-1" },
       { type: "tool_use", id: "t1", name: "analizar_formula", input: { formula: "¬(P ∧ Q)" } },
       { type: "tool_use", id: "t2", name: "controlar_app", input: { accion: "abrir_pestana", pestana: "tabla" } },
       { type: "tool_use", id: "t3", name: "controlar_app", input: { accion: "abrir_pestana", pestana: "val" } },
@@ -66,7 +67,11 @@ test("bucle: usa el motor, devuelve acciones y el texto final", async (t) => {
   assert.equal(j.text, "Te abro la Tabla. ¿En qué fila cambia?");
   assert.deepEqual(j.actions, [{ type: "abrir_pestana", tab: "tabla" }]);
   assert.equal(sent.length, 2);
-  assert.equal(sent[0].model, "claude-haiku-4-5");
+  assert.equal(sent[0].model, "claude-sonnet-5-5");
+  assert.equal(sent[0].output_config.effort, "low");
+  assert.equal(sent[0].fallbacks, "default");
+  // Los bloques de pensamiento vuelven intactos: se reenvía el contenido completo del asistente.
+  assert.deepEqual(sent[1].messages.at(-2).content[0], { type: "thinking", thinking: "", signature: "sig-1" });
   const results = sent[1].messages.at(-1).content;
   assert.equal(results.length, 3);
   assert.match(results[0].content, /"conectiva_principal":"¬ negación"/);
@@ -82,10 +87,13 @@ test("bucle: la última ronda prohíbe herramientas y el modelo se puede cambiar
       : { stop_reason: "tool_use", content: [{ type: "tool_use", id: "t" + sent.length, name: "tabla_verdad", input: { formula: "P" } }] };
     return new Response(JSON.stringify(reply), { status: 200 });
   });
-  const j = await (await worker.fetch(post({ question: "hola" }), { ANTHROPIC_API_KEY: "x", MODEL: "claude-sonnet-5-5" })).json();
+  const j = await (await worker.fetch(post({ question: "hola" }), { ANTHROPIC_API_KEY: "x", MODEL: "claude-haiku-4-5" })).json();
   assert.equal(j.text, "Listo.");
   assert.equal(sent.length, 4);
-  assert.equal(sent[0].model, "claude-sonnet-5-5");
+  assert.equal(sent[0].model, "claude-haiku-4-5");
+  // Haiku 4.5 no admite effort ni fallbacks: no se envían.
+  assert.equal(sent[0].output_config, undefined);
+  assert.equal(sent[0].fallbacks, undefined);
   // Sin tarjeta abierta no hay acciones posibles.
   assert.deepEqual(j.actions, []);
 });
@@ -108,7 +116,9 @@ test("guardián: detecta la solución con los átomos del alumno, no los ejemplo
   assert.deepEqual(findLeaks("Con otros átomos: «no A ni B» es ¬A ∧ ¬B.", ctx), []);
   assert.deepEqual(findLeaks("Sin fórmulas aquí.", null), []);
   // Fórmulas que el alumno escribe en su pregunta no son una filtración.
-  assert.deepEqual(findLeaks("P → Q, Q ∴ P no es válido: P → Q no garantiza Q → P.", ctx, "¿Es válido P → Q, Q ∴ P?"), ["Q → P"]);
+  assert.deepEqual(findLeaks("P → Q, Q ∴ P no es válido: P → Q no garantiza Q → P, aunque sí ¬Q → ¬P.", ctx, "¿Es válido P → Q, Q ∴ P?"), []);
+  // La recíproca de la fórmula de la TARJETA sí cuenta: en «sólo si» suele ser justo la solución.
+  assert.deepEqual(findLeaks("Prueba con S → L.", { atomos: "S: salgo\nL: llueve", formula: "L → S" }), ["S → L"]);
   assert.deepEqual(findLeaks("No, P → Q con Q no da P.", ctx, "¿Es válido P → Q, Q ∴ P?"), []);
   // Fórmula del alumno con errores: cualquier fórmula completa con sus átomos cuenta.
   assert.equal(findLeaks("Sería ¬P ∧ ¬Q.", { atomos: "P: a\nQ: b", formula: "¬(P ∧" }).length, 1);

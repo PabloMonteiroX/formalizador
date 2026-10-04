@@ -292,7 +292,7 @@ export default function setup(host) {
       else if (ACTIONS[a?.type]) then(ACTIONS[a.type]);
     }
   }
-  async function askRemote(url, payload, ms = 20000) {
+  async function askRemote(url, payload, ms = 30000) {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
     try {
       const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), signal: ctl.signal });

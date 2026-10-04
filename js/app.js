@@ -3,7 +3,7 @@ import * as L from "./logic.js";
 import * as S from "./store.js";
 import { createHost, PLUGINS } from "./plugins/registry.js";
 
-export const APP_VERSION = "1.2.0";
+export const APP_VERSION = "1.3.0";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -49,9 +49,11 @@ function renderList() {
   const items = q ? sorted.filter((c) => (c.tag + " " + c.frase + " " + c.formula).toLowerCase().includes(q)) : sorted;
   $("empty").hidden = state.cards.length > 0;
   $("noResults").hidden = !(state.cards.length && !items.length);
+  $("listHead").hidden = !items.length;
+  $("listHead").textContent = q ? `${items.length} de ${state.cards.length}` : `${items.length} ${items.length === 1 ? "tarjeta" : "tarjetas"}`;
   $("list").innerHTML = items.map((c) => {
     const s = L.summary(c.formula);
-    return `<li><button class="row" type="button" data-id="${esc(c.id)}">
+    return `<li><button class="row tone-${s.tone}" type="button" data-id="${esc(c.id)}">
       <span class="row-tag">${esc(c.tag || "Sin nombre")}</span>
       <span class="pill ${s.tone}">${esc(s.label)}</span>
       ${c.frase ? `<span class="row-text">${esc(c.frase)}</span>` : ""}
@@ -375,10 +377,14 @@ function about() {
   const kb = (S.bytesUsed() / 1024).toFixed(1);
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   openInfo("Datos y versión", `
-    <p><strong>Versión:</strong> ${APP_VERSION}</p>
+    <div class="about-id">
+      <img src="icons/icon.svg" alt="" width="52" height="52">
+      <div><strong>Formalizador ${APP_VERSION}</strong><span>Diseñado y desarrollado por Pablo Monteiro, estudiante de Ingeniería Informática en la UOC.</span>
+      <a href="https://github.com/PabloMonteiroX" target="_blank" rel="noopener">github.com/PabloMonteiroX</a></div>
+    </div>
     <p><strong>Tarjetas:</strong> ${state.cards.length} · <strong>Espacio usado:</strong> ${kb} KB (el límite habitual es 5 MB)</p>
     <p><strong>Modo:</strong> ${standalone ? "app instalada" : "navegador"} · <strong>Sin conexión:</strong> ${"serviceWorker" in navigator ? "disponible" : "no disponible en este navegador"}</p>
-    <p>Todo se guarda solo en este dispositivo. No hay cuentas, servidores ni analítica. En iOS, la app instalada y Safari tienen almacenamientos separados; exporta una copia de seguridad de vez en cuando.</p>`);
+    <p>Todo se guarda solo en este dispositivo. No hay cuentas ni analítica; solo si activas el cerebro online de FARAD-8, la tarjeta abierta se envía a tu servidor. En iOS, la app instalada y Safari tienen almacenamientos separados; exporta una copia de seguridad de vez en cuando.</p>`);
 }
 
 function addExamples() {
@@ -491,6 +497,10 @@ function init() {
   S.requestPersist();
   host = createHost({ getCard: current, logic: L, toast, openInfo, escapeHTML: esc, onMenuChange: renderPluginMenu, tabsFor, openTab });
   buildKbar(); bind(); installHint(); route(); registerSW();
+  $("sigVersion").textContent = APP_VERSION;
+  // Título grande en la lista; el de la barra aparece al desplazarse (como en iOS).
+  const onScroll = () => document.body.classList.toggle("scrolled", window.scrollY > 44);
+  window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
   // Los plugins cargan después del primer pintado: nunca retrasan la app.
   const boot = () => host.loadAll().then(() => { const c = current(); if (c) { host.emit("open", { card: c }); analyzeNow(); } });
   (window.requestIdleCallback || ((f) => setTimeout(f, 200)))(boot);

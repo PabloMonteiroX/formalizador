@@ -6,6 +6,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://*.workers.dev; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <title>Formalizador</title>
+  <meta name="author" content="Pablo Monteiro">
   <meta name="description" content="Formaliza frases y razonamientos en lógica de enunciados: tablas de verdad, validez, FNC/FND y cláusulas. Funciona sin conexión.">
 
   <!-- PWA / iOS -->
@@ -45,17 +46,30 @@
   <main id="main">
     <!-- Lista -->
     <section id="viewList" aria-labelledby="title">
+      <div class="hero">
+        <img class="hero-mark" src="icons/icon.svg" alt="" width="48" height="48">
+        <div>
+          <p class="hero-title" aria-hidden="true">Formalizador</p>
+          <p class="hero-sub">Lógica de enunciados, paso a paso</p>
+        </div>
+      </div>
       <div class="search">
         <label class="visually-hidden" for="search">Buscar</label>
         <input id="search" type="search" placeholder="Buscar por nombre, frase o fórmula" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
       </div>
+      <p class="list-head" id="listHead" hidden></p>
       <ul class="list" id="list" aria-label="Tus fórmulas y razonamientos"></ul>
       <div class="empty" id="empty" hidden>
+        <img class="empty-mark" src="icons/icon.svg" alt="" width="56" height="56">
         <p class="empty-title">Todavía no hay nada aquí</p>
         <p>Crea una frase para formalizarla o un razonamiento para comprobar si es válido.</p>
         <button class="text-btn" id="loadExamples" type="button">Cargar los ejemplos del módulo</button>
       </div>
       <p class="noresults" id="noResults" hidden>Ningún resultado para esa búsqueda.</p>
+      <footer class="signature">
+        <span>Formalizador <span id="sigVersion"></span></span>
+        <span>diseñado y desarrollado por <a href="https://github.com/PabloMonteiroX" target="_blank" rel="noopener">Pablo Monteiro</a></span>
+      </footer>
     </section>
 
     <!-- Editor -->

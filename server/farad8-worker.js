@@ -9,12 +9,12 @@
 //   src/index.js →  export { default } from "<ruta>/formalizador/server/farad8-worker.js";
 //   wrangler secret put ANTHROPIC_API_KEY
 //   wrangler deploy                     → https://farad8.<tu-usuario>.workers.dev
-// Opcional: variable MODEL para cambiar de modelo sin tocar el código.
+// Modelo: Claude Sonnet 5.5. Opcional: variable MODEL para cambiarlo sin tocar el código.
 // En la app: FARAD-8 → AJUSTES → pega esa URL → PROBAR → GUARDAR.
 import * as L from "../js/logic.js";
 
 const ALLOWED_ORIGINS = ["https://pablomonteirox.github.io", "http://localhost:8765"];
-const DEFAULT_MODEL = "claude-haiku-4-5";
+const DEFAULT_MODEL = "claude-sonnet-5-5";
 const MAX_INPUT = 6000;           // caracteres totales aceptados por petición
 const MAX_ROUNDS = 4;             // llamadas al modelo por pregunta (bucle de herramientas)
 const MAX_ACTIONS = 2;            // acciones en la app por respuesta
@@ -205,9 +205,16 @@ export function findLeaks(text, ctx, asked = "") {
       own.push(f, ...L.subs(f));
     }
   } catch { /* la fórmula del alumno tiene errores: cualquier fórmula completa con sus átomos cuenta */ }
-  // Lo que el alumno ha escrito en su pregunta también es suyo.
+  // Lo que el alumno ha escrito en su pregunta también es suyo, y hablar de ello exige poder escribir
+  // su recíproca, su contraria y su contrarrecíproca (p. ej., para explicar «afirmar el consecuente»).
   for (const m of String(asked).match(CANDIDATE) || []) {
-    try { const r = L.parseAll(L.conv(m.trim())); if (r) for (const f of r.arg ? [...r.premises, ...(r.conclusion ? [r.conclusion] : [])] : [r.f]) own.push(f, ...L.subs(f)); } catch { /* */ }
+    try {
+      const r = L.parseAll(L.conv(m.trim())); if (!r) continue;
+      for (const f of r.arg ? [...r.premises, ...(r.conclusion ? [r.conclusion] : [])] : [r.f]) {
+        own.push(f, ...L.subs(f), L.NOT(f));
+        if (f.t === "imp") own.push({ t: "imp", l: f.r, r: f.l }, { t: "imp", l: L.NOT(f.l), r: L.NOT(f.r) }, { t: "imp", l: L.NOT(f.r), r: L.NOT(f.l) });
+      }
+    } catch { /* */ }
   }
   const leaks = [];
   for (const m of text.match(CANDIDATE) || []) {
@@ -243,10 +250,25 @@ function cors(origin) {
 }
 const json = (obj, status, headers) => new Response(JSON.stringify(obj), { status, headers: { ...headers, "content-type": "application/json; charset=utf-8" } });
 
+// Petición base. Sonnet 5.5 piensa (adaptive): esfuerzo bajo para una charla ágil, y max_tokens con margen
+// porque el pensamiento cuenta. Si un clasificador rechaza, fallbacks:"default" reintenta en otro modelo.
+function request(model, msgs, extra = {}) {
+  return {
+    model, max_tokens: 4000, system: SYSTEM, tools: TOOLS, messages: msgs,
+    ...(/^claude-haiku/.test(model) ? {} : { output_config: { effort: "low" } }),
+    ...(/^claude-(sonnet-5-5|opus-5|fable-5)/.test(model) ? { fallbacks: "default" } : {}),
+    ...extra,
+  };
+}
+
 async function callModel(env, body) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", ...(env.ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": env.ANTHROPIC_WORKSPACE_ID } : {}), "content-type": "application/json" },
+    headers: {
+      "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json",
+      ...(env.ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": env.ANTHROPIC_WORKSPACE_ID } : {}),
+      ...(body.fallbacks ? { "anthropic-beta": "server-side-fallback-2026-07-01" } : {}),
+    },
     body: JSON.stringify(body),
   });
   if (!r.ok) { const e = new Error("modelo"); e.status = r.status; throw e; }
@@ -260,7 +282,7 @@ async function converse(env, msgs, ctx, asked) {
   let data;
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const last = round === MAX_ROUNDS - 1;
-    data = await callModel(env, { model, max_tokens: 700, system: SYSTEM, tools: TOOLS, ...(last ? { tool_choice: { type: "none" } } : {}), messages: msgs });
+    data = await callModel(env, request(model, msgs, last ? { tool_choice: { type: "none" } } : {}));
     if (data.stop_reason !== "tool_use") break;
     msgs.push({ role: "assistant", content: data.content });
     const results = data.content.filter((b) => b.type === "tool_use").map((b) => {
@@ -282,12 +304,12 @@ async function converse(env, msgs, ctx, asked) {
     const ask = { type: "text", text: "Ahora escribe tu respuesta al alumno (texto plano, 6 líneas como máximo)." };
     if (data.content?.length) msgs.push({ role: "assistant", content: data.content }, { role: "user", content: [ask] });
     else msgs.at(-1).content.push(ask);
-    data = await callModel(env, { model, max_tokens: 700, system: SYSTEM, tools: TOOLS, tool_choice: { type: "none" }, messages: msgs });
+    data = await callModel(env, request(model, msgs, { tool_choice: { type: "none" } }));
   }
   let text = textOf(data), leaks = findLeaks(text, ctx, asked);
   if (leaks.length) { // una segunda oportunidad; si insiste, se tacha la fórmula
-    msgs.push({ role: "assistant", content: data.content }, { role: "user", content: `[CONTROL DE INTEGRIDAD, no lo menciones] Tu respuesta escribe una fórmula con los átomos del alumno que no es la suya (${leaks.join(" ; ")}). Eso es darle la solución. Reescribe la respuesta sin ninguna fórmula con sus átomos: señala qué falla, usa un ejemplo con otros átomos y termina con una pregunta. Responde directamente al alumno como si fuera tu primera respuesta: no te disculpes ni menciones este aviso.` });
-    data = await callModel(env, { model, max_tokens: 700, system: SYSTEM, tools: TOOLS, tool_choice: { type: "none" }, messages: msgs });
+    msgs.push({ role: "assistant", content: data.content }, { role: "user", content: `[CONTROL DE INTEGRIDAD: el alumno no ve este mensaje ni tu respuesta anterior] Tu respuesta escribía fórmulas con los átomos del alumno que no son suyas (${leaks.join(" ; ")}), y eso podría darle la solución. Responde de nuevo a su pregunta («${String(asked).slice(0, 200)}») sin escribir esas fórmulas: descríbelas con palabras o usa otros átomos (A, B, C), y termina con una pregunta. Escribe solo la respuesta para el alumno, como si fuera la primera: sin disculpas ni referencias a versiones anteriores.` });
+    data = await callModel(env, request(model, msgs, { tool_choice: { type: "none" } }));
     text = textOf(data); leaks = findLeaks(text, ctx, asked);
     if (leaks.length) text = redact(text, leaks);
   }

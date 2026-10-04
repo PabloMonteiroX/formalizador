@@ -11,6 +11,7 @@ export const LINES = {
     "MOV AX, LOGICA ; arrancando… ¡Hola! Soy FARAD-8. Escribe una frase y la desmontamos juntos.",
     "PRESS START ▸ Soy FARAD-8, tu copiloto de 8 bits para la lógica de enunciados.",
     "Bobina cargada al 100 %. Soy FARAD-8: yo pongo las pistas, tú pones el cerebro.",
+    "Firmware de P. Monteiro cargado sin errores. ¡Hola! Soy FARAD-8: frase a frase, lo desmontamos juntos.",
   ],
   greetCard: [
     "Nueva tarjeta en el cartucho. Primero los átomos, luego las conectivas.",

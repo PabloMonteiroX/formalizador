@@ -1,5 +1,5 @@
 // sw.js — funciona sin conexión. Sube VERSION en cada despliegue para forzar la actualización.
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
 const CACHE = `formalizador-${VERSION}`;
 const ASSETS = [
   "./",

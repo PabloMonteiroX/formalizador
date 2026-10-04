@@ -37,7 +37,7 @@ FARAD-8 es un robot de 8 bits con estética Game Boy que vive en la esquina de l
 |---|---|
 | Sin endpoint configurado | Modo cartucho: todo en el dispositivo (`brain.js`) |
 | Endpoint configurado y con señal | ⚡ ONLINE: preguntas libres a un modelo de IA a través de tu worker |
-| El servidor falla o tarda más de 20 s | Se escapa a modo cartucho, responde en local y lo reintenta en 60 s |
+| El servidor falla o tarda más de 30 s | Se escapa a modo cartucho, responde en local y lo reintenta en 60 s |
 | El iPhone pierde la red | Avisa («jaula de Faraday») y sigue en local; al volver la red, avisa de que ha vuelto |
 
 **Cerebro online (opcional).** La API key **nunca** va en la app: vive como secreto en un Cloudflare Worker (`server/farad8-worker.js`). El worker solo acepta peticiones de `pablomonteirox.github.io`, limita las peticiones, recorta el texto de entrada y lleva la regla de integridad en su prompt de sistema.
@@ -49,7 +49,7 @@ En modo online FARAD-8 tiene herramientas:
 | `analizar_formula`, `tabla_verdad`, `comparar_formulas`, `comprobar_razonamiento` | En el worker, con el mismo `js/logic.js` de la app | Comprueba antes de afirmar: no calcula tablas ni validez «de memoria» |
 | `controlar_app` | En la app | Abre una pestaña de la tarjeta (con botón «▸ VER …»), lanza el QUIZ, lee la fórmula, da una pista o explica el error. Máximo 2 por respuesta; solo acciones de una lista cerrada y pestañas que existan. **No puede escribir en tus tarjetas.** |
 
-El modelo por defecto es `claude-haiku-4-5`; para cambiarlo sin tocar el código, define la variable `MODEL` del worker (por ejemplo, `claude-sonnet-5-5`).
+El modelo es Claude Sonnet 5.5 (`claude-sonnet-5-5`) con esfuerzo bajo; si un filtro de seguridad rechaza una pregunta, la API la reintenta sola en otro modelo. Para cambiarlo sin tocar el código, define la variable `MODEL` del worker.
 
 ```bash
 npm i -g wrangler && wrangler login
