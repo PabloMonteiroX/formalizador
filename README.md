@@ -21,6 +21,38 @@ Autor: **Pablo Monteiro** · [@PabloMonteiroX](https://github.com/PabloMonteiroX
 
 Convenciones del módulo: `¬` > `∧` = `∨` > `→`, asociatividad por la izquierda y `∨` no exclusiva.
 
+## FARAD-8, tutor retro (plugin)
+
+FARAD-8 es un robot de 8 bits con estética Game Boy que vive en la esquina de la app. De vez en cuando parpadea, pierde píxeles o suelta un `MOV AX, LOGICA`: no es un fallo, es su personalidad.
+
+- **Proactivo:** mientras escribes, compara tu frase con tu fórmula y avisa en una burbuja de los errores típicos: «ni» mal negado, o exclusiva que falta o que sobra, «…, cuando X» al final, «…, y …», `→` sin ninguna condición en la frase, dirección de la condición necesaria, tautologías sospechosas y errores de sintaxis explicados.
+- **PISTA:** escalera de dos niveles, primero la zona y después el concepto. **Nunca escribe la formalización por ti**, por integridad académica.
+- **LEER:** traduce tu fórmula al castellano usando tus átomos, para que la compares con la frase.
+- **QUIZ:** tres preguntas generadas a partir de tu fórmula (conectiva principal, valor en una fila, qué dice). Con 3 de 3 la tarjeta queda marcada ★ COMPRENDIDO; si cambias la fórmula, hay que volver a demostrarlo.
+- **¿POR QUÉ?:** explica el error, el contraejemplo con tus átomos o la conectiva principal.
+
+**Con y sin conexión:**
+
+| Situación | Qué hace |
+|---|---|
+| Sin endpoint configurado | Modo cartucho: todo en el dispositivo (`brain.js`) |
+| Endpoint configurado y con señal | ⚡ ONLINE: preguntas libres a un modelo de IA a través de tu worker |
+| El servidor falla o tarda más de 12 s | Se escapa a modo cartucho, responde en local y lo reintenta en 60 s |
+| El iPhone pierde la red | Avisa («jaula de Faraday») y sigue en local; al volver la red, avisa de que ha vuelto |
+
+**Cerebro online (opcional).** La API key **nunca** va en la app: vive como secreto en un Cloudflare Worker (`server/farad8-worker.js`). El worker solo acepta peticiones de `pablomonteirox.github.io`, limita las peticiones, recorta el texto de entrada y lleva la regla de integridad en su prompt de sistema.
+
+```bash
+npm i -g wrangler && wrangler login
+wrangler init farad8 --yes            # sustituye src/index.js por server/farad8-worker.js
+wrangler secret put ANTHROPIC_API_KEY
+wrangler deploy                       # https://farad8.<usuario>.workers.dev
+```
+
+Después, en la app: FARAD-8 → **AJUSTES** → pega la URL → **PROBAR** → **GUARDAR**. La CSP solo permite conexiones a `*.workers.dev`; si usas otro dominio, añádelo a `connect-src` en `index.html`.
+
+**Plugins.** `js/plugins/registry.js` es el anfitrión. La app emite los eventos `open`, `analyze` y `close`, y cada plugin recibe un `host` con: almacenamiento con espacio de nombres propio, `toast`, el motor lógico y entradas en el menú. Si un plugin falla, la app sigue funcionando. Los plugins se activan y desactivan en Menú → Plugins. Para añadir otro, crea su carpeta y regístralo en `PLUGINS`.
+
 ## Estructura
 
 ```
@@ -32,8 +64,11 @@ js/app.js               interfaz: lista, editor, barra de teclado, menú, PWA
 sw.js                   service worker (offline y aviso de actualización)
 manifest.webmanifest    manifest de la PWA
 icons/                  apple-touch-icon 180, 192, 512, maskable, svg, favicon
-tests/logic.test.mjs    tests del motor (node --test)
-tests/e2e.mjs           prueba en navegador con viewport de iPhone (Playwright, opcional)
+js/plugins/registry.js  anfitrión de plugins (eventos, almacenamiento, menú)
+js/plugins/farad8/      FARAD-8: farad8.js (interfaz), brain.js (cerebro local), sprite.js, farad8.css
+server/farad8-worker.js cerebro online (Cloudflare Worker con la API key como secreto)
+tests/*.test.mjs        tests del motor y de FARAD-8 (node --test)
+tests/e2e*.mjs          pruebas en navegador con viewport de iPhone (Playwright, opcional)
 ```
 
 No tiene dependencias ni paso de compilación: es HTML, CSS y JS (módulos ES) servidos tal cual.
@@ -73,7 +108,7 @@ El fichero `.nojekyll` evita que GitHub procese el sitio con Jekyll. Todas las r
 
 ## Publicar una versión nueva
 
-1. Cambia `VERSION` en `sw.js` y `APP_VERSION` en `js/app.js` (por ejemplo, `1.0.1`).
+1. Cambia `VERSION` en `sw.js` y `APP_VERSION` en `js/app.js` (por ejemplo, `1.1.1`). Si añades ficheros, inclúyelos también en la lista `ASSETS` de `sw.js`.
 2. `git commit` y `git push`.
 3. Al abrir la app, aparece «Hay una versión nueva → Actualizar».
 
@@ -106,8 +141,8 @@ Detalles para iOS que ya están resueltos:
 
 ## Seguridad y privacidad
 
-- CSP estricta: solo carga recursos del propio origen y no hay scripts en línea.
-- Sin servicios de terceros, sin analítica, sin cookies y sin servidor: todo ocurre en el dispositivo.
+- CSP estricta: solo carga recursos del propio origen y no hay scripts en línea. Las conexiones externas se limitan a `*.workers.dev` (el cerebro online opcional).
+- Sin analítica y sin cookies. Por defecto todo ocurre en el dispositivo; solo si configuras el cerebro online se envía la tarjeta abierta a **tu** worker.
 - Todo el texto del usuario se escapa antes de mostrarlo.
 - Las copias que se importan se validan y se limpian campo a campo.
 

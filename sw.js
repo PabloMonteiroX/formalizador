@@ -1,5 +1,5 @@
 // sw.js — funciona sin conexión. Sube VERSION en cada despliegue para forzar la actualización.
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const CACHE = `formalizador-${VERSION}`;
 const ASSETS = [
   "./",
@@ -8,6 +8,11 @@ const ASSETS = [
   "./js/app.js",
   "./js/logic.js",
   "./js/store.js",
+  "./js/plugins/registry.js",
+  "./js/plugins/farad8/farad8.js",
+  "./js/plugins/farad8/brain.js",
+  "./js/plugins/farad8/sprite.js",
+  "./js/plugins/farad8/farad8.css",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/favicon-32.png",

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://*.workers.dev; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <title>Formalizador</title>
   <meta name="description" content="Formaliza frases y razonamientos en lógica de enunciados: tablas de verdad, validez, FNC/FND y cláusulas. Funciona sin conexión.">
@@ -127,6 +127,7 @@
       <button type="button" data-act="export">Exportar copia de seguridad</button>
       <button type="button" data-act="import">Importar copia de seguridad</button>
       <button type="button" data-act="examples">Añadir los ejemplos del módulo</button>
+      <button type="button" data-act="plugins">Plugins</button>
       <button type="button" data-act="about">Datos y versión</button>
     </div>
     <button type="button" class="sheet-close" data-act="close">Cerrar</button>

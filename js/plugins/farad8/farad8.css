@@ -1,0 +1,106 @@
+/* FARAD-8 — look Game Boy (paleta DMG), un solo aspecto en claro y oscuro. */
+.f8 {
+  --gb0: #0f380f; --gb1: #306230; --gb2: #8bac0f; --gb3: #9bbc0f; --spark: #f8e058;
+  --shell: #c8c4be; --shell-dk: #8f8b85; --btn: #8b1d4f; --btn-fg: #f4e9ee; --pad: #3c3c44; --pad-fg: #e8e8ec;
+  --f8-mono: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+}
+
+/* Botón flotante */
+.f8-fab {
+  position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 25;
+  width: 60px; height: 60px; border-radius: 14px; border: 3px solid var(--gb0); background: var(--gb3); padding: 6px;
+  box-shadow: 4px 4px 0 var(--gb0); display: grid; place-items: center; cursor: pointer; touch-action: manipulation;
+}
+body.editing .f8-fab { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+body.kbd .f8-fab, body.kbd .f8-bubble { display: none; }
+.f8-fab:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--gb0); }
+.f8-sprite { width: 40px; height: 40px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.f8-sprite.big { width: 64px; height: 64px; }
+.f8-led { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; background: #d08a1a; border: 2px solid var(--gb0); }
+.f8.is-online .f8-led { background: var(--spark); box-shadow: 0 0 6px var(--spark); }
+.f8-alert .f8-fab { animation: f8-hop 0.9s steps(2) 3; }
+
+/* Burbuja de diálogo pixelada */
+.f8-bubble {
+  position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(168px + env(safe-area-inset-bottom, 0px)); z-index: 26;
+  max-width: min(320px, calc(100vw - 32px)); display: flex; align-items: flex-start;
+  background: var(--gb3); color: var(--gb0); border: 3px solid var(--gb0); box-shadow: 4px 4px 0 var(--gb0);
+  font: 600 14px/1.35 var(--f8-mono);
+}
+body.editing .f8-bubble { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+.f8-bubble::after { content: ""; position: absolute; right: 22px; bottom: -12px; width: 12px; height: 12px; background: var(--gb3); border-right: 3px solid var(--gb0); border-bottom: 3px solid var(--gb0); transform: skewX(30deg); }
+.f8-bubble-text { flex: 1; text-align: left; background: none; border: 0; color: inherit; font: inherit; padding: 10px 4px 10px 12px; cursor: pointer; }
+.f8-bubble-x { background: none; border: 0; color: inherit; font: 700 20px/1 var(--f8-mono); min-width: 40px; min-height: 40px; cursor: pointer; }
+
+/* Consola */
+.f8 dialog { border: 0; padding: 0; background: transparent; width: min(560px, 100vw); max-height: 92vh; max-height: 92dvh; margin: auto auto 0; overflow: visible; }
+@media (min-width: 700px) { .f8 dialog { margin: auto; } }
+.f8 dialog::backdrop { background: rgba(15, 56, 15, 0.55); }
+.f8-shell {
+  background: var(--shell); color: #1d1d22; border-radius: 16px 16px 40px 16px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: inset -4px -4px 0 var(--shell-dk); display: flex; flex-direction: column; gap: 12px; max-height: 92vh; max-height: 92dvh; overflow: auto;
+  font-family: var(--f8-mono);
+}
+.f8-screen {
+  background: var(--gb3); color: var(--gb0); border: 10px solid #55545c; border-radius: 6px 6px 22px 6px; padding: 10px; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: 8px; min-height: 0;
+}
+.f8-screen::after { /* líneas de barrido */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(15, 56, 15, 0.07) 0 1px, transparent 1px 3px);
+}
+.f8-head { display: flex; gap: 10px; align-items: center; }
+.f8-id { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.f8-id strong { font-size: 18px; letter-spacing: 0.08em; }
+.f8-mode { font-weight: 700; }
+.f8-meter { letter-spacing: 0.05em; }
+.f8-log { height: 34vh; height: 34dvh; min-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; font-size: 15px; line-height: 1.4; }
+.f8-log p { margin: 0; white-space: pre-wrap; }
+.f8-msg.aside { color: var(--gb1); font-style: italic; }
+.f8-msg.glitch { color: var(--gb1); letter-spacing: 0.15em; }
+.f8-you { color: var(--gb1); font-weight: 700; text-align: right; }
+
+.f8-quiz { border-top: 2px dashed var(--gb1); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.f8-q { margin: 0; font-weight: 700; font-size: 15px; }
+.f8-opts { display: flex; flex-direction: column; gap: 6px; }
+.f8-opts button {
+  text-align: left; font: 600 14px/1.35 var(--f8-mono); color: var(--gb0); background: var(--gb2); border: 2px solid var(--gb0);
+  padding: 8px 10px; min-height: 44px; cursor: pointer; box-shadow: 3px 3px 0 var(--gb0);
+}
+.f8-opts button.ok { background: var(--gb3); outline: 3px solid var(--gb0); }
+.f8-opts button.bad { background: var(--gb1); color: var(--gb3); text-decoration: line-through; }
+.f8-opts button:disabled { cursor: default; }
+
+/* Botonera tipo consola */
+.f8-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.f8-pad button, .f8-foot button, .f8-ask button {
+  font: 800 13px/1 var(--f8-mono); letter-spacing: 0.06em; color: var(--btn-fg); background: var(--btn); border: 0; border-radius: 999px;
+  min-height: 44px; padding: 0 8px; box-shadow: 0 3px 0 #4d0f2b; cursor: pointer; touch-action: manipulation;
+}
+.f8-pad button:active, .f8-foot button:active, .f8-ask button:active { transform: translateY(2px); box-shadow: 0 1px 0 #4d0f2b; }
+.f8-ask { display: flex; gap: 8px; }
+.f8-ask input, .f8-settings input[type="url"] {
+  flex: 1; min-width: 0; font: 16px var(--f8-mono); color: var(--gb0); background: var(--gb3); border: 3px solid var(--gb0); padding: 8px 10px; border-radius: 0;
+}
+.f8-ask button { width: 52px; border-radius: 10px; font-size: 18px; }
+.f8-foot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.f8-foot button { background: var(--pad); color: var(--pad-fg); box-shadow: 0 3px 0 #1c1c22; border-radius: 10px; padding: 0 14px; }
+.f8 button:focus-visible, .f8 input:focus-visible { outline: 3px solid var(--spark); outline-offset: 2px; }
+
+.f8-settings h2 { margin: 0; font: 800 18px var(--f8-mono); letter-spacing: 0.1em; }
+.f8-row { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 15px; }
+.f8-row input { width: 22px; height: 22px; accent-color: var(--btn); }
+.f8-field { font-weight: 700; font-size: 14px; }
+.f8-small { font-size: 13px; margin: 0; color: #3a3a40; }
+.f8-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* El "defecto" que es personalidad */
+.f8-glitch .f8-fab, .f8-glitch .f8-screen { animation: f8-glitch 0.38s steps(3) 1; }
+@keyframes f8-glitch {
+  0% { transform: translate(0, 0); filter: none; }
+  33% { transform: translate(-2px, 1px) skewX(-4deg); filter: hue-rotate(40deg) contrast(1.4); clip-path: inset(10% 0 35% 0); }
+  66% { transform: translate(2px, -1px); filter: saturate(2); clip-path: inset(45% 0 5% 0); }
+  100% { transform: none; filter: none; clip-path: none; }
+}
+@keyframes f8-hop { 50% { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .f8 *, .f8 { animation: none !important; } }

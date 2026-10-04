@@ -1,8 +1,9 @@
 // app.js — interfaz de Formalizador (lista + editor), PWA y barra de conectivas para iOS.
 import * as L from "./logic.js";
 import * as S from "./store.js";
+import { createHost, PLUGINS } from "./plugins/registry.js";
 
-export const APP_VERSION = "1.0.0";
+export const APP_VERSION = "1.1.0";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -38,6 +39,7 @@ function showList() {
   document.title = "Formalizador";
   hideKbar();
   renderList();
+  host?.emit("close");
 }
 
 /* ================= lista ================= */
@@ -77,6 +79,7 @@ function openEditor(card) {
   $("fFormula").placeholder = card.kind === "razonamiento" ? "P → Q, P ∴ Q" : "P ∧ Q → ¬R";
   window.scrollTo(0, 0);
   $("title").focus({ preventScroll: true });
+  host?.emit("open", { card });
   analyzeNow();
 }
 
@@ -92,6 +95,7 @@ function tabsFor(res) {
 function analyzeNow() {
   const c = current(); if (!c) return;
   const a = L.analyze(c.formula, c.atomos);
+  queueMicrotask(() => host?.emit("analyze", { card: c, analysis: a }));
   $("warns").innerHTML = a.warnings.map((w) => `<div class="warn">${esc(w)}</div>`).join("");
   $("cmpBox").hidden = true; $("tabs").innerHTML = ""; $("panel").innerHTML = "";
 
@@ -308,8 +312,8 @@ function buildKbar() {
     bar._place = place;
   }
 }
-function showKbar() { const b = $("kbar"); b.hidden = false; b._place?.(); }
-function hideKbar() { const b = $("kbar"); b.hidden = true; b.style.transform = ""; }
+function showKbar() { const b = $("kbar"); b.hidden = false; b._place?.(); document.body.classList.add("kbd"); }
+function hideKbar() { const b = $("kbar"); b.hidden = true; b.style.transform = ""; document.body.classList.remove("kbd"); }
 
 /* ================= toast ================= */
 let toastTimer = 0;
@@ -443,8 +447,32 @@ function bind() {
     if (act === "export") exportBackup();
     if (act === "examples") addExamples();
     if (act === "about") about();
+    if (act === "plugins") pluginsDialog();
+    if (act.startsWith("plugin:")) host.menuItems().find((m) => "plugin:" + m.id === act)?.fn();
   });
   $("importFile").addEventListener("change", (e) => { const f = e.target.files?.[0]; $("menu").close(); if (f) importBackup(f); e.target.value = ""; });
+}
+
+/* ================= plugins ================= */
+let host = null;
+function renderPluginMenu(items) {
+  const list = document.querySelector("#menu .sheet-list");
+  list.querySelectorAll("[data-plugin-item]").forEach((b) => b.remove());
+  const about = list.querySelector('[data-act="about"]');
+  for (const it of items) {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.act = "plugin:" + it.id; b.dataset.pluginItem = "1"; b.textContent = it.label;
+    list.insertBefore(b, about);
+  }
+}
+function pluginsDialog() {
+  openInfo("Plugins", PLUGINS.map((p) => `<label class="plug"><input type="checkbox" data-plugin="${esc(p.id)}" ${host.isEnabled(p.id) ? "checked" : ""}> <span><strong>${esc(p.name)}</strong><br>${esc(p.desc)}</span></label>`).join("") +
+    `<p class="note">Los cambios se aplican al volver a abrir la app.</p>`);
+  $("infoBody").querySelectorAll("[data-plugin]").forEach((i) => i.addEventListener("change", () => {
+    host.setEnabled(i.dataset.plugin, i.checked);
+    toast(i.checked ? "Plugin activado. Recargando…" : "Plugin desactivado. Recargando…");
+    setTimeout(() => location.reload(), 900);
+  }));
 }
 
 function init() {
@@ -452,7 +480,11 @@ function init() {
   if (loaded === null) { state.cards = S.exampleCards(); S.save(state.cards); }
   else state.cards = loaded;
   S.requestPersist();
+  host = createHost({ getCard: current, logic: L, toast, openInfo, escapeHTML: esc, onMenuChange: renderPluginMenu });
   buildKbar(); bind(); installHint(); route(); registerSW();
+  // Los plugins cargan después del primer pintado: nunca retrasan la app.
+  const boot = () => host.loadAll().then(() => { const c = current(); if (c) { host.emit("open", { card: c }); analyzeNow(); } });
+  (window.requestIdleCallback || ((f) => setTimeout(f, 200)))(boot);
 }
 
 init();
