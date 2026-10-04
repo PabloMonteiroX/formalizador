@@ -124,6 +124,7 @@ export function explainCounterexample(v, map = {}) {
 }
 
 const THEORY = [
+  [/qui[eé]n te (cre[oó]|hizo|program[oó])|tu creador|qui[eé]n eres/, "Me creó Pablo Monteiro, mi creador, con ayuda de Claude (Anthropic), como herramienta de estudio para la lógica de enunciados. No soy un producto oficial de la UOC: soy un robot casero de 8 bits, hecho con cariño y algo de soldador."],
   [/principal/, "La conectiva principal es la ÚLTIMA que se aplica: la que queda fuera de todos los paréntesis. Con las prioridades del módulo (¬ > ∧ = ∨ > →), si hay → fuera de paréntesis, suele ser la principal."],
   [/necesari|s[oó]lo si/, "«A es necesario para B» = sin A no hay B. Se formaliza B → A (o ¬A → ¬B). Lo necesario va a la derecha."],
   [/suficient/, "«A es suficiente para B» = basta con A para tener B. Se formaliza A → B. Lo suficiente va a la izquierda."],
