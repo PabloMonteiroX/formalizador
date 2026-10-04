@@ -3,7 +3,7 @@ import * as L from "./logic.js";
 import * as S from "./store.js";
 import { createHost, PLUGINS } from "./plugins/registry.js";
 
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.2.0";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -455,6 +455,15 @@ function bind() {
 
 /* ================= plugins ================= */
 let host = null;
+// Abre una pestaña de la tarjeta actual si existe para su fórmula. Lo usan los plugins (FARAD-8).
+function openTab(k) {
+  const c = current(); if (!c) return false;
+  let res = null; try { res = L.parseAll(c.formula || ""); } catch { /* fórmula con errores */ }
+  if (!tabsFor(res).some(([t]) => t === k)) return false;
+  c.tab = k; persist(); analyzeNow();
+  requestAnimationFrame(() => $("tabs").scrollIntoView({ behavior: "smooth", block: "start" }));
+  return true;
+}
 function renderPluginMenu(items) {
   const list = document.querySelector("#menu .sheet-list");
   list.querySelectorAll("[data-plugin-item]").forEach((b) => b.remove());
@@ -480,7 +489,7 @@ function init() {
   if (loaded === null) { state.cards = S.exampleCards(); S.save(state.cards); }
   else state.cards = loaded;
   S.requestPersist();
-  host = createHost({ getCard: current, logic: L, toast, openInfo, escapeHTML: esc, onMenuChange: renderPluginMenu });
+  host = createHost({ getCard: current, logic: L, toast, openInfo, escapeHTML: esc, onMenuChange: renderPluginMenu, tabsFor, openTab });
   buildKbar(); bind(); installHint(); route(); registerSW();
   // Los plugins cargan después del primer pintado: nunca retrasan la app.
   const boot = () => host.loadAll().then(() => { const c = current(); if (c) { host.emit("open", { card: c }); analyzeNow(); } });

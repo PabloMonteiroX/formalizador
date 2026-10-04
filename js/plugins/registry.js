@@ -14,7 +14,7 @@ export function createHost(api) {
   const readFlags = () => { try { return JSON.parse(localStorage.getItem(FLAGS_KEY) || "{}"); } catch { return {}; } };
 
   const host = {
-    ...api, // getCard, logic, toast, openInfo, escapeHTML
+    ...api, // getCard, logic, toast, openInfo, escapeHTML, tabsFor, openTab
     on(evt, fn) { if (!handlers.has(evt)) handlers.set(evt, []); handlers.get(evt).push(fn); },
     emit(evt, data) {
       for (const fn of handlers.get(evt) || []) {

@@ -135,11 +135,13 @@ export default function setup(host) {
   /* ---------- registro de diálogo con efecto máquina de escribir ---------- */
   const queue = [];
   function say(text, kind = "f8") { queue.push({ text, kind }); if (!st.typing) pump(); }
+  function then(fn) { queue.push({ fn }); if (!st.typing) pump(); } // se ejecuta cuando termina de hablar
   function you(text) { const p = document.createElement("p"); p.className = "f8-you"; p.textContent = "> " + text; log.append(p); trim(); log.scrollTop = log.scrollHeight; }
   function trim() { while (log.children.length > 40) log.firstChild.remove(); }
   function pump() {
     const m = queue.shift(); if (!m) { st.typing = false; refreshMode(); return; }
     st.typing = true;
+    if (m.fn) { try { m.fn(); } catch (e) { console.error("[farad8]", e); } return pump(); }
     const p = document.createElement("p"); p.className = "f8-msg " + m.kind; log.append(p); trim();
     if (REDUCED.matches || !sheet.open) { p.textContent = m.text; log.scrollTop = log.scrollHeight; pump(); return; }
     let i = 0; paint("talk");
@@ -246,12 +248,12 @@ export default function setup(host) {
     if (online()) {
       paint("think"); say(B.pick(B.LINES.think), "aside");
       try {
-        const text = await askRemote(cfg.endpoint, {
+        const { text, actions } = await askRemote(cfg.endpoint, {
           question, history: st.history.slice(0, -1),
           context: st.card ? contextFor(st.card, st.analysis) : null,
         });
         st.history.push({ role: "assistant", content: text });
-        say(text); return;
+        say(text); runActions(actions); return;
       } catch (e) {
         st.degradedUntil = Date.now() + 60000; refreshMode();
         say(B.pick(B.LINES.degraded), "aside");
@@ -261,23 +263,43 @@ export default function setup(host) {
     if (local === null) doHint(); else say(local);
   }
   function contextFor(card, a) {
-    const res = a?.res;
+    const res = a?.res, p = prog(card.id);
+    const pestanas = (host.tabsFor?.(res) || []).map(([k]) => k);
     return {
       frase: card.frase.slice(0, 1500), atomos: card.atomos.slice(0, 800), formula: card.formula.slice(0, 400),
       error: a?.error?.message || null,
       tipo: !res ? null : res.arg ? "razonamiento" : "formula",
       lectura: res && !res.arg ? B.readAloud(res.f, a.atomsMap) : null,
       diagnostico: B.diagnose(card, a).map((d) => d.text),
+      avisos: (a?.warnings || []).slice(0, 4),
+      pestanas, pestana_actual: pestanas.includes(card.tab) ? card.tab : null,
+      progreso: { comprendida: p.done, mejor_quiz: `${p.ok}/3`, pistas_pedidas: st.hintLevel[card.id] || 0 },
     };
   }
-  async function askRemote(url, payload, ms = 12000) {
+
+  /* ---------- acciones que decide el cerebro online ---------- */
+  const TAB_NAME = { estr: "Estructura", tabla: "Tabla", fn: "Formas normales", cmp: "Comparar", val: "Validez", cla: "Cláusulas" };
+  const ACTIONS = { iniciar_quiz: startQuiz, leer_formula: doRead, dar_pista: doHint, explicar_error: doWhy };
+  function runActions(actions) {
+    for (const a of (Array.isArray(actions) ? actions : []).slice(0, 2)) {
+      if (a?.type === "abrir_pestana" && TAB_NAME[a.tab]) then(() => {
+        if (!host.openTab?.(a.tab)) return;
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "f8-chip"; b.textContent = `▸ VER ${TAB_NAME[a.tab].toUpperCase()}`;
+        b.addEventListener("click", () => sheet.close(), { once: true });
+        log.append(b); trim(); log.scrollTop = log.scrollHeight;
+      });
+      else if (ACTIONS[a?.type]) then(ACTIONS[a.type]);
+    }
+  }
+  async function askRemote(url, payload, ms = 20000) {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
     try {
       const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), signal: ctl.signal });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
       if (typeof j.text !== "string" || !j.text.trim()) throw new Error("respuesta vacía");
-      return j.text.slice(0, 2000);
+      return { text: j.text.slice(0, 2000), actions: Array.isArray(j.actions) ? j.actions : [] };
     } finally { clearTimeout(t); }
   }
 
@@ -376,7 +398,7 @@ export default function setup(host) {
       const bad = readSettings();
       if (bad || !cfg.endpoint) { out.textContent = "Escribe una URL https:// primero."; return; }
       out.textContent = "Probando…";
-      try { const t = await askRemote(cfg.endpoint, { question: "ping", history: [], context: null }, 10000); out.textContent = "Conectado ✓ " + t.slice(0, 80); }
+      try { const { text: t } = await askRemote(cfg.endpoint, { question: "ping", history: [], context: null }, 10000); out.textContent = "Conectado ✓ " + t.slice(0, 80); }
       catch (err) { out.textContent = `No responde (${err.name === "AbortError" ? "tiempo agotado" : err.message}). Seguiré en modo cartucho.`; }
     }
   });

@@ -70,6 +70,11 @@ body.editing .f8-bubble { bottom: calc(92px + env(safe-area-inset-bottom, 0px));
 .f8-opts button.ok { background: var(--gb3); outline: 3px solid var(--gb0); }
 .f8-opts button.bad { background: var(--gb1); color: var(--gb3); text-decoration: line-through; }
 .f8-opts button:disabled { cursor: default; }
+.f8-chip {
+  display: block; margin: 2px 0 8px; font: 800 13px/1 var(--f8-mono); letter-spacing: 0.06em; color: var(--gb0); background: var(--gb2);
+  border: 2px solid var(--gb0); padding: 10px 12px; min-height: 40px; cursor: pointer;
+}
+.f8-chip:active { transform: translateY(2px); }
 
 /* Botonera tipo consola */
 .f8-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }

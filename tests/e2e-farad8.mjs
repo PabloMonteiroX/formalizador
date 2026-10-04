@@ -12,7 +12,7 @@ page.on("pageerror", (e) => errs.push(String(e)));
 page.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); });
 let remoteMode = "ok";
 await page.route("https://farad8-test.example.workers.dev/**", (r) => remoteMode === "ok"
-  ? r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ text: "PONG ⚡ cerebro online listo" }) })
+  ? r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ text: "PONG ⚡ cerebro online listo", actions: [{ type: "abrir_pestana", tab: "tabla" }] }) })
   : r.abort());
 
 await page.goto(BASE);
@@ -55,6 +55,7 @@ console.log("mode:", await page.textContent(".f8-mode"));
 await page.fill("#f8q", "¿qué es una condición necesaria?"); await page.press("#f8q", "Enter");
 await page.waitForTimeout(2500);
 console.log("online reply:", (await page.textContent(".f8-log")).includes("PONG"));
+console.log("acción abrir_pestana:", await page.locator(".f8-chip").count() > 0, "| pestaña:", await page.getAttribute('#tabs [aria-selected="true"]', "data-tab"));
 // el endpoint cae → modo cartucho
 remoteMode = "down";
 await page.fill("#f8q", "¿qué es una condición necesaria?"); await page.press("#f8q", "Enter");
