@@ -1,4 +1,12 @@
 <!doctype html>
+<!--
+   ●        Formalizador · lógica de enunciados, paso a paso
+  ╱ ╲       Diseñado y desarrollado por Pablo Monteiro
+ ●   ●      con FARAD-8 (8 bits) y Ohm (12×11 píxeles, 0 Ω a los mimos).
+
+ ¿Curioseando el código? Bien hecho: así se aprende.
+ Pista para curiosos: el logo guarda un secreto. Siete toques.
+-->
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -47,10 +55,17 @@
     <!-- Lista -->
     <section id="viewList" aria-labelledby="title">
       <div class="hero">
-        <img class="hero-mark" src="icons/icon.svg" alt="" width="48" height="48">
+        <button class="hero-mark" id="heroMark" type="button" aria-label="Logotipo de Formalizador">
+          <svg viewBox="0 0 512 512" width="48" height="48" aria-hidden="true">
+            <defs><linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="hm-g1"/><stop offset="1" class="hm-g2"/></linearGradient></defs>
+            <rect class="hm-bg" width="512" height="512" rx="112"/>
+            <path class="hm-edge" d="M256 168 L176 312"/><path class="hm-edge e2" d="M256 168 L336 312"/>
+            <circle class="hm-node n1" cx="256" cy="168" r="46"/><circle class="hm-node n2" cx="176" cy="312" r="46"/><circle class="hm-node n3" cx="336" cy="312" r="46"/>
+          </svg>
+        </button>
         <div>
           <p class="hero-title" aria-hidden="true">Formalizador</p>
-          <p class="hero-sub">Lógica de enunciados, paso a paso</p>
+          <p class="hero-sub" id="heroSub">Lógica de enunciados, paso a paso</p>
         </div>
       </div>
       <div class="search">
@@ -69,6 +84,7 @@
       <footer class="signature">
         <span>Formalizador <span id="sigVersion"></span></span>
         <span>diseñado y desarrollado por <a href="https://github.com/PabloMonteiroX" target="_blank" rel="noopener">Pablo Monteiro</a></span>
+        <span class="motto" title="Para toda frase existe una fórmula. O eso intentamos.">∀ frase ∃ fórmula</span>
       </footer>
     </section>
 

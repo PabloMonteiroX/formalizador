@@ -167,6 +167,27 @@ export default function setup(host) {
     };
   })();
 
+  /* ---------- de vez en cuando, FARAD-8 le lanza una chispa a Ohm ---------- */
+  function zap() {
+    const a = fab.getBoundingClientRect(), b = $(".f8-pet").getBoundingClientRect();
+    if (!a.width || !b.width) return;
+    const z = document.createElement("div"); z.className = "f8-zap"; root.append(z);
+    const x0 = a.left + a.width / 2, y0 = a.top + 10, x1 = b.left + b.width / 2, y1 = b.top + 8;
+    paint("happy");
+    z.animate([
+      { transform: `translate(${x0}px, ${y0}px) scale(1)` },
+      { transform: `translate(${(x0 + x1) / 2}px, ${Math.min(y0, y1) - 46}px) scale(1.5)`, offset: 0.5 },
+      { transform: `translate(${x1}px, ${y1}px) scale(.5)`, opacity: 0.3 },
+    ], { duration: 700, easing: "cubic-bezier(.3, .6, .4, 1)" }).finished
+      .then(() => { z.remove(); pet.cheer(); blip(1568, 30); paint("idle"); }, () => z.remove());
+  }
+  (function zapLoop() {
+    setTimeout(() => {
+      if (cfg.fx && cfg.pet && !REDUCED.matches && document.visibilityState === "visible" && !sheet.open && bubble.hidden && !document.body.classList.contains("kbd")) zap();
+      zapLoop();
+    }, 70000 + Math.random() * 80000);
+  })();
+
   /* ---------- registro de diálogo con efecto máquina de escribir ---------- */
   const queue = [];
   function say(text, kind = "f8") { queue.push({ text, kind }); if (!st.typing) pump(); }
@@ -345,6 +366,7 @@ export default function setup(host) {
   host.on("open", ({ card }) => {
     st.card = card; st.analysis = null; refreshMeter();
     if (!cfg.greeted) { cfg.greeted = true; save(); bubbleSay(B.pick(B.LINES.hello) + " Tócame cuando quieras.", { force: true }); }
+    else if (B.dayLine() && cfg.dayShown !== new Date().toDateString()) { cfg.dayShown = new Date().toDateString(); save(); bubbleSay(B.dayLine()); }
     else if (!card.formula && !card.atomos) bubbleSay(B.pick(B.LINES.greetCard));
   });
   host.on("close", () => { st.card = null; st.analysis = null; hideBubble(); refreshMeter(); quizBox.hidden = true; st.quiz = null; });
@@ -379,7 +401,8 @@ export default function setup(host) {
   /* ---------- eventos de la interfaz ---------- */
   function openSheet() {
     hideBubble(); sheet.showModal(); refreshMode(); refreshMeter();
-    if (!log.children.length) say(B.pick(B.LINES.hello));
+    if (!st.booted) { st.booted = true; B.boot(host.version).forEach((l) => say(l, "boot")); }
+    if (!log.querySelector(".f8-msg:not(.boot)")) { say(B.pick(B.LINES.hello)); const d = B.dayLine(); if (d) say(d, "aside"); }
     if (st.card && st.analysis) {
       const d = st.analysis.error ? null : B.diagnose(st.card, st.analysis)[0];
       if (st.analysis.error) say("Veo un error de sintaxis. Pulsa ¿POR QUÉ? y te lo explico.");

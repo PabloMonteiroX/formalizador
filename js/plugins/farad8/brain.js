@@ -45,6 +45,31 @@ export const LINES = {
 };
 export const pick = (arr, rnd = Math.random) => arr[Math.floor(rnd() * arr.length)];
 
+// Arranque de la consola, una vez por sesión. Créditos en la primera línea, como en las BIOS de verdad.
+export const boot = (version = "") => [
+  `BIOS${version ? " v" + version : ""} · © P. Monteiro`,
+  "RAM 8 KB ............ OK",
+  "BOBINA TESLA ........ OK",
+  "MOTOR LÓGICO ........ OK",
+  "OHM ................. prrr",
+];
+
+// Efemérides: los que hicieron posible que un robot de 8 bits razone.
+const DAYS = {
+  "03-14": "Día de π. En lógica de enunciados no sale, pero Ohm se ha comido una porción.",
+  "04-30": "Hoy cumple años Claude Shannon (1916): enseñó que los circuitos son álgebra de Boole. Mis cables le saludan.",
+  "06-23": "Hoy cumple años Alan Turing (1912). He decidido que hoy no me paro.",
+  "06-27": "Hoy cumple años Augustus De Morgan (1806). ¬(A ∧ B) ≡ ¬A ∨ ¬B: de nada, dice él.",
+  "07-10": "Hoy cumple años Nikola Tesla (1856). Bobina a máxima potencia: ¡chispas extra!",
+  "09-22": "Hoy cumple años Michael Faraday (1791), el que me dio nombre. Jaula cerrada, cerebro abierto.",
+  "11-02": "Hoy cumple años George Boole (1815). Sin su álgebra yo sería un tostador con antena.",
+  "12-10": "Hoy cumple años Ada Lovelace (1815), autora del primer programa. Respeto máximo, nivel 255.",
+  "12-25": "Modo navideño: ¬(estudio ∧ turrón)… mentira, se puede todo a la vez. Ohm lleva gorro.",
+};
+export function dayLine(d = new Date()) {
+  return DAYS[`${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`] || null;
+}
+
 /* ---------- utilidades de árbol ---------- */
 const some = (n, pred) => pred(n) || (n.t === "not" ? some(n.a, pred) : n.t !== "atom" && (some(n.l, pred) || some(n.r, pred)));
 const isImp = (n) => n.t === "imp";
@@ -132,6 +157,7 @@ export function explainCounterexample(v, map = {}) {
 }
 
 const THEORY = [
+  [/\bohm\b|gato|mascota/, "Ohm es mi gato: 12×11 píxeles y 0 Ω de resistencia a los mimos. Se llama así por Georg Ohm (V = I·R). Está a mi izquierda; tócalo."],
   [/qui[eé]n te (cre[oó]|hizo|program[oó])|tu creador|qui[eé]n eres/, "Me creó Pablo Monteiro, mi creador, con ayuda de Claude (Anthropic), como herramienta de estudio para la lógica de enunciados. No soy un producto oficial de la UOC: soy un robot casero de 8 bits, hecho con cariño y algo de soldador."],
   [/principal/, "La conectiva principal es la ÚLTIMA que se aplica: la que queda fuera de todos los paréntesis. Con las prioridades del módulo (¬ > ∧ = ∨ > →), si hay → fuera de paréntesis, suele ser la principal."],
   [/necesari|s[oó]lo si/, "«A es necesario para B» = sin A no hay B. Se formaliza B → A (o ¬A → ¬B). Lo necesario va a la derecha."],

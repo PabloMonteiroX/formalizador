@@ -3,13 +3,16 @@ import * as L from "./logic.js";
 import * as S from "./store.js";
 import { createHost, PLUGINS } from "./plugins/registry.js";
 
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.5.0";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const VF = (b) => (b ? "V" : "F");
 
-const state = { cards: [], currentId: null, query: "", lastSym: null, undo: null };
+const state = { cards: [], currentId: null, query: "", lastSym: null, undo: null, lastOk: null };
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+// Transición suave entre vistas donde el navegador la soporte (Safari 18+, Chrome).
+const transition = (fn) => (document.startViewTransition && !REDUCED.matches ? document.startViewTransition(fn) : fn());
 
 /* ================= persistencia ================= */
 let saveTimer = 0;
@@ -39,6 +42,11 @@ function showList() {
   document.title = "Formalizador";
   hideKbar();
   renderList();
+  // Entrada escalonada de las tarjetas, solo al llegar a la lista (no al buscar).
+  const list = $("list");
+  [...list.children].forEach((li, i) => li.style.setProperty("--i", Math.min(i, 8)));
+  list.classList.remove("enter"); void list.offsetWidth; list.classList.add("enter");
+  setTimeout(() => list.classList.remove("enter"), 700);
   host?.emit("close");
 }
 
@@ -49,6 +57,7 @@ function renderList() {
   const items = q ? sorted.filter((c) => (c.tag + " " + c.frase + " " + c.formula).toLowerCase().includes(q)) : sorted;
   $("empty").hidden = state.cards.length > 0;
   $("noResults").hidden = !(state.cards.length && !items.length);
+  if (!items.length && q) $("noResults").textContent = searchEgg(q) || "Ningún resultado para esa búsqueda.";
   $("listHead").hidden = !items.length;
   $("listHead").textContent = q ? `${items.length} de ${state.cards.length}` : `${items.length} ${items.length === 1 ? "tarjeta" : "tarjetas"}`;
   $("list").innerHTML = items.map((c) => {
@@ -82,6 +91,7 @@ function openEditor(card) {
   window.scrollTo(0, 0);
   $("title").focus({ preventScroll: true });
   host?.emit("open", { card });
+  state.lastOk = null; // la chispa solo salta al pasar de mal a bien, no al abrir
   analyzeNow();
 }
 
@@ -104,16 +114,20 @@ function analyzeNow() {
   if (a.error) {
     const p = Math.max(0, Math.min(a.error.pos ?? 0, c.formula.length));
     $("status").innerHTML = `<div class="status err"><span class="dot"></span><div>${esc(a.error.message)}<div class="caret-line">${esc(c.formula)}\n${" ".repeat(p)}^</div></div></div>`;
+    state.lastOk = false;
     return;
   }
   if (!a.res) {
     $("status").innerHTML = `<div class="status idle"><span class="dot"></span><div>Escribe la fórmula. Las conectivas están en la barra de encima del teclado.</div></div>`;
+    state.lastOk = false;
     return;
   }
   const res = a.res;
   $("status").innerHTML = res.arg
     ? `<div class="status ok"><span class="dot"></span><div>Razonamiento bien formado: ${res.premises.length} premisa(s)${res.conclusion ? " y conclusión." : ". Falta «∴ conclusión»."}</div></div>`
     : `<div class="status ok"><span class="dot"></span><div>Fórmula bien formada.</div></div>`;
+  if (state.lastOk === false) $("status").firstElementChild.classList.add("spark"); // chispa: acaba de quedar bien formada
+  state.lastOk = true;
 
   // La pestaña elegida se conserva aunque la fórmula pase un momento por otro tipo mientras se teclea.
   const T = tabsFor(res);
@@ -418,7 +432,7 @@ function installHint() {
 
 /* ================= arranque ================= */
 function bind() {
-  window.addEventListener("hashchange", route);
+  window.addEventListener("hashchange", () => transition(route));
   $("backBtn").addEventListener("click", () => go("#/"));
   $("list").addEventListener("click", (e) => { const b = e.target.closest(".row"); if (b) go("#/c/" + b.dataset.id); });
   $("search").addEventListener("input", (e) => { state.query = e.target.value; renderList(); });
@@ -490,13 +504,52 @@ function pluginsDialog() {
   }));
 }
 
+/* ================= guiños ================= */
+// Búsquedas con premio: cuando no hay resultados, algunas palabras tienen respuesta propia.
+const EGGS = [
+  [/^ohm$|gato/, "Ohm no está entre tus tarjetas: está durmiendo encima del teclado."],
+  [/faraday/, "Faraday no dejó fórmulas aquí, pero sí una jaula con su nombre (y un robot con su apellido)."],
+  [/boole/, "«No hay tarjetas» ∧ «hay ganas» → «crea una». Firmado: George Boole."],
+  [/^42$/, "La respuesta es 42. La fórmula, todavía no."],
+  [/tesla|bobina/, "Ninguna tarjeta a un millón de voltios. De momento."],
+  [/farad/, "FARAD-8 no vive en la lista: está en la esquina, junto a Ohm."],
+  [/pablo|monteiro/, "El creador no está en la lista: está en la firma de abajo."],
+  [/^(⊤|⊥|verdad|mentira)$/, "⊤ siempre es verdad, ⊥ nunca. Tu búsqueda, de momento, ⊥."],
+];
+function searchEgg(q) { const e = EGGS.find(([rx]) => rx.test(q)); return e ? e[1] : null; }
+
+// Siete toques al logo: modo DMG (la paleta de la Game Boy original) para toda la app.
+const DMG_KEY = "formalizador:dmg";
+function setDMG(on) {
+  if (on) document.documentElement.dataset.dmg = ""; else delete document.documentElement.dataset.dmg;
+  try { on ? localStorage.setItem(DMG_KEY, "1") : localStorage.removeItem(DMG_KEY); } catch { /* */ }
+}
+function heroInit() {
+  try { if (localStorage.getItem(DMG_KEY)) setDMG(true); } catch { /* */ }
+  const d = new Date(), h = d.getHours(), md = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const sub = md === "11-02" ? "Lógica de enunciados · feliz cumpleaños, George Boole"
+    : h < 6 ? "Lógica de enunciados, también de madrugada" : null;
+  if (sub) $("heroSub").textContent = sub;
+  let taps = [];
+  $("heroMark").addEventListener("click", () => {
+    const now = Date.now(); taps = [...taps.filter((t) => now - t < 2500), now];
+    const m = $("heroMark"); m.classList.remove("tap"); void m.offsetWidth; m.classList.add("tap");
+    if (taps.length < 7) return;
+    taps = []; const on = !("dmg" in document.documentElement.dataset);
+    transition(() => setDMG(on));
+    toast(on ? "MODO DMG ▸ 4 tonos de verde, 0 excusas." : "Vuelta al color. Ohm lo echará de menos.");
+  });
+}
+
 function init() {
   const loaded = S.load();
   if (loaded === null) { state.cards = S.exampleCards(); S.save(state.cards); }
   else state.cards = loaded;
   S.requestPersist();
-  host = createHost({ getCard: current, logic: L, toast, openInfo, escapeHTML: esc, onMenuChange: renderPluginMenu, tabsFor, openTab });
-  buildKbar(); bind(); installHint(); route(); registerSW();
+  host = createHost({ getCard: current, logic: L, toast, openInfo, escapeHTML: esc, onMenuChange: renderPluginMenu, tabsFor, openTab, version: APP_VERSION });
+  buildKbar(); bind(); installHint(); route(); registerSW(); heroInit();
+  console.log("%c● Formalizador " + APP_VERSION + "%c\n∀ frase ∃ fórmula. Diseñado y desarrollado por Pablo Monteiro — github.com/PabloMonteiroX\nSi lees esto, te gusta mirar por dentro. A Ohm también.",
+    "font: 700 14px system-ui; color: #1d5aa0", "font: 12px ui-monospace, monospace; color: #5a6575");
   $("sigVersion").textContent = APP_VERSION;
   // Título grande en la lista; el de la barra aparece al desplazarse (como en iOS).
   const onScroll = () => document.body.classList.toggle("scrolled", window.scrollY > 44);

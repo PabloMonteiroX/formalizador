@@ -129,3 +129,7 @@ body.editing .f8-bubble { bottom: calc(92px + env(safe-area-inset-bottom, 0px));
 @keyframes f8-hop { 50% { transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .f8 *, .f8 { animation: none !important; } }
 @media (prefers-color-scheme: dark) { .f8-pet .f8-pet-sprite { filter: drop-shadow(0 0 1px rgba(155, 188, 15, .7)); } }
+.f8-msg.boot { font-size: 12px; letter-spacing: 0.04em; color: var(--gb1); }
+.f8-msg.boot + .f8-msg.boot { margin-top: -6px; }
+.f8-msg.boot + .f8-msg:not(.boot) { margin-top: 4px; }
+.f8-zap { position: fixed; left: -3px; top: -3px; width: 6px; height: 6px; background: var(--spark); box-shadow: 0 0 8px 2px rgba(248, 224, 88, 0.85); z-index: 27; pointer-events: none; }

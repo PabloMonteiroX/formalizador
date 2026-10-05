@@ -130,7 +130,7 @@ main { padding: 12px var(--gutter-r) 0 var(--gutter); max-width: 1100px; margin:
 .mono { font-family: var(--f-mono); font-size: 15px !important; }
 .formula { font-family: var(--f-mono); font-size: 20px !important; letter-spacing: .02em; min-height: 52px; }
 
-.status { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; border-radius: 12px; padding: 10px 12px; }
+.status { position: relative; overflow: hidden; display: flex; gap: 8px; align-items: flex-start; font-size: 15px; border-radius: 12px; padding: 10px 12px; }
 .status.ok { background: var(--ok-soft); color: var(--ok); }
 .status.err { background: var(--err-soft); color: var(--err); }
 .status.idle { background: var(--surface-2); color: var(--muted); }
@@ -222,7 +222,8 @@ dialog.sheet::backdrop { background: rgba(10, 15, 22, .45); }
 
 /* ---------- portada de la lista y firma ---------- */
 .hero { display: flex; align-items: center; gap: 14px; padding: 6px 0 18px; }
-.hero-mark { flex: none; border-radius: 12px; box-shadow: var(--shadow); }
+.hero-mark { flex: none; padding: 0; border: 0; background: none; border-radius: 12px; box-shadow: var(--shadow); line-height: 0; }
+.hero-mark svg { display: block; border-radius: 12px; }
 .hero-title { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -.025em; line-height: 1.1; }
 .hero-sub { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
 .list-head { margin: 18px 2px -2px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -239,3 +240,49 @@ dialog.sheet::backdrop { background: rgba(10, 15, 22, .45); }
 .about-id strong { font-size: 17px; letter-spacing: -.01em; }
 .about-id span { color: var(--muted); font-size: 14px; }
 .about-id a { color: var(--accent); font-size: 14px; font-weight: 600; text-decoration: none; }
+
+/* ---------- logotipo vivo: un árbol de subfórmulas que se dibuja ---------- */
+.hm-g1 { stop-color: #2a6cbd; } .hm-g2 { stop-color: #174886; }
+.hm-bg { fill: url(#heroGrad); }
+.hm-edge { stroke: #fff; stroke-width: 16; stroke-linecap: round; opacity: .45; stroke-dasharray: 170; fill: none; }
+.hm-node { fill: #fff; transform-box: fill-box; transform-origin: center; }
+.hm-node { animation: hm-pop .5s var(--ease) both; }
+.hm-node.n2 { animation-delay: .28s; } .hm-node.n3 { animation-delay: .36s; }
+.hm-edge { animation: hm-draw .45s var(--ease) .12s both; } .hm-edge.e2 { animation-delay: .2s; }
+@keyframes hm-pop { from { transform: scale(0); } 70% { transform: scale(1.14); } }
+@keyframes hm-draw { from { stroke-dashoffset: 170; } }
+.hero-mark.tap svg { animation: hm-tap .26s var(--ease); }
+@keyframes hm-tap { 50% { transform: scale(.9) rotate(-5deg); } }
+
+/* ---------- movimiento ---------- */
+.list.enter > li { animation: rise .4s var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+/* Chispa: la fórmula acaba de quedar bien formada */
+.status.spark::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-110%);
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, .7) 50%, transparent 65%);
+  animation: sweep .85s var(--ease) .05s;
+}
+.status.spark .dot { animation: zap .7s steps(2) 2; }
+@keyframes sweep { to { transform: translateX(110%); } }
+@keyframes zap { 50% { background: #f8e058; box-shadow: 0 0 8px #f8e058; } }
+@media (prefers-color-scheme: dark) { .status.spark::after { background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, .18) 50%, transparent 65%); } }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .26s; animation-timing-function: cubic-bezier(.2, .7, .2, 1); }
+
+.signature .motto { margin-top: 6px; font-family: var(--f-mono); letter-spacing: .08em; opacity: .55; }
+
+/* ---------- modo DMG (siete toques al logo): la Game Boy original ---------- */
+:root[data-dmg] {
+  --bg: #8bac0f; --surface: #9bbc0f; --surface-2: #a8c63a; --fg: #0f380f; --muted: #306230; --line: #306230;
+  --accent: #0f380f; --accent-fg: #9bbc0f; --accent-soft: #b0cc4c;
+  --ok: #0f380f; --ok-soft: #b0cc4c; --warn: #0f380f; --warn-soft: #c3d97a; --err: #0f380f; --err-soft: #7f9e0c;
+  --shadow: 3px 3px 0 #306230; --shadow-lift: 4px 4px 0 #0f380f; --f-body: var(--f-mono); color-scheme: light;
+}
+:root[data-dmg] .hm-g1 { stop-color: #306230; } :root[data-dmg] .hm-g2 { stop-color: #0f380f; }
+:root[data-dmg] .hm-node { fill: #9bbc0f; } :root[data-dmg] .hm-edge { stroke: #9bbc0f; }
+:root[data-dmg] .row, :root[data-dmg] .field input, :root[data-dmg] .field textarea, :root[data-dmg] .search input, :root[data-dmg] .btn { border-radius: 4px; }
+:root[data-dmg] .tt td.F, :root[data-dmg] .tt td.V { color: var(--fg); }
+:root[data-dmg] .btn { font-size: 14px; white-space: nowrap; padding: 0 10px; }
+:root[data-dmg] .topbar h1 { font-size: 15px; max-width: 44vw; }
+:root[data-dmg] .icon-btn { font-size: 15px; }
+:root[data-dmg] .signature { font-size: 11px; }

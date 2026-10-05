@@ -29,6 +29,7 @@ FARAD-8 es un robot de 8 bits con estética Game Boy que vive en la esquina de l
 - **Dos modos** (AJUSTES): **ayudante**, por defecto, resuelve lo que le pidas (formalizaciones, tablas, demostraciones) completo y verificado con el motor lógico; **tutor** no da soluciones y guía con pistas, para practicar antes de un examen.
 - **PISTA:** escalera de dos niveles, primero la zona y después el concepto.
 - **Ohm**, el gato de píxeles de FARAD-8: mueve la cola, se duerme si no haces nada y se alegra cuando superas un QUIZ. Se desactiva en AJUSTES.
+- Hay algún secreto más. No están documentados: se encuentran.
 - **LEER:** traduce tu fórmula al castellano usando tus átomos, para que la compares con la frase.
 - **QUIZ:** tres preguntas generadas a partir de tu fórmula (conectiva principal, valor en una fila, qué dice). Con 3 de 3 la tarjeta queda marcada ★ COMPRENDIDO; si cambias la fórmula, hay que volver a demostrarlo.
 - **¿POR QUÉ?:** explica el error, el contraejemplo con tus átomos o la conectiva principal.
